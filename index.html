@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuantSphere // Профессиональный тестер стратегий и анализатор графиков</title>
+  
+  <!-- CSS Стили -->
+  <link rel="stylesheet" href="styles.css?v=3.3.0">
+  
+  <!-- Google Иконки -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  
+  <!-- TradingView Lightweight Charts CDN -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <!-- Анимированный жидкий фон (Liquid Glass Background) -->
+  <div class="liquid-background">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ (HEADER) -->
+    <header>
+      <div class="logo-section">
+        <div class="logo-icon">📊</div>
+        <h1 class="logo-text">Quant<span>Sphere</span></h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-export-workspace" class="theme-btn" style="width: auto; padding: 0 12px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px;" title="Экспортировать настройки рабочего пространства в JSON">
+          <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
+          <span>Экспорт</span>
+        </button>
+        <button id="btn-import-workspace" class="theme-btn" style="width: auto; padding: 0 12px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px;" title="Импортировать настройки рабочего пространства из JSON">
+          <span class="material-symbols-outlined" style="font-size: 18px;">upload</span>
+          <span>Импорт</span>
+        </button>
+        <input type="file" id="workspace-import-file" accept=".json" style="display: none;" />
+        <button id="live-toggle-btn" class="theme-btn" style="width: auto; padding: 0 12px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px;" title="Запустить Live Paper Trading (Binance WebSocket)">
+          <span class="material-symbols-outlined" id="live-toggle-icon" style="font-size: 18px; color: var(--text-secondary);">sensors</span>
+          <span>Режим LIVE</span>
+        </button>
+        <button id="theme-toggle-btn" class="theme-btn" title="Переключить тему">
+          <span class="material-symbols-outlined" id="theme-toggle-icon">light_mode</span>
+        </button>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--color-long); box-shadow: 0 0 8px var(--color-long); animation: pulse 2s infinite;"></span>
+          <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Движок Активен</span>
+        </div>
+        <a href="#" class="github-link" onclick="showToast('Strategy Backtester v1.0.0 работает полностью локально.', 'success')">
+          <span class="material-symbols-outlined" style="font-size: 18px;">info</span>
+          v1.0.0
+        </a>
+      </div>
+    </header>
+    
+    <!-- ОСНОВНАЯ СЕТКА (WORKSPACE) -->
+    <div class="dashboard-grid">
+      
+      <!-- БОКОВАЯ ПАНЕЛЬ НАСТРОЕК (SIDEBAR) -->
+      <aside class="sidebar">
+        
+        <!-- БЛОК 1: ИСТОЧНИК ДАННЫХ -->
+        <div class="sidebar-section">
+          <div class="section-title">
+            <span>Загрузка данных</span>
+            <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent-color);">database</span>
+          </div>
+          
+          <!-- Объяснение для новичков -->
+          <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px; padding: 8px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border-left: 2px solid var(--accent-color);">
+            <strong>Простыми словами:</strong> Выбираем исторический график. Это как загрузить карту в игре — мы берем историю движения цен реальных криптовалют или акций, чтобы на них проверить наши силы.
+          </div>
+          
+          <div class="form-group">
+            <label for="data-source-type">Тип источника <span class="help-tooltip-trigger" data-tooltip="Выберите откуда брать исторические свечи: Демо, Live-Binance или загрузить свой CSV-файл.">?</span></label>
+            <select id="data-source-type" aria-label="Data Source Type">
+              <option value="crypto" selected>Крипта Live (Binance API)</option>
+              <option value="demo">Демо-данные</option>
+              <option value="csv">Загрузить свой CSV</option>
+            </select>
+          </div>
+          
+          <!-- Селекторы Крипты (Видны если источник = crypto) -->
+          <div id="crypto-selectors" class="form-group">
+            <label for="crypto-symbol">Торговая пара</label>
+            <select id="crypto-symbol" aria-label="Crypto Symbol">
+              <option value="BTCUSDT" selected>BTC / USDT (Bitcoin)</option>
+              <option value="ETHUSDT">ETH / USDT (Ethereum)</option>
+              <option value="SOLUSDT">SOL / USDT (Solana)</option>
+              <option value="BNBUSDT">BNB / USDT (Binance Coin)</option>
+              <option value="ADAUSDT">ADA / USDT (Cardano)</option>
+              <option value="XRPUSDT">XRP / USDT (Ripple)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px; margin-top: 4px;">
+            <input type="checkbox" id="param-portfolio-mode" style="width: auto; cursor: pointer; height: 16px; margin: 0;" aria-label="Param Portfolio Mode">
+            <label for="param-portfolio-mode" style="cursor: pointer; font-size: 12px; font-weight: 600;">💼 Портфельный бэктест (Мульти-актив) <span class="help-tooltip-trigger" data-tooltip="Запустить расчет робота одновременно на нескольких монетах. Их балансы просуммируются день-в-день.">?</span></label>
+          </div>
+          
+          <div id="portfolio-assets-group" style="display: none; flex-direction: column; gap: 6px; margin-top: 6px; background: rgba(255,255,255,0.02); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <label style="font-size: 11px; font-weight: bold; color: var(--text-secondary);">Выберите активы для портфеля:</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px;">
+              <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="portfolio-asset-cb" value="BTCUSDT" checked> BTCUSDT</label>
+              <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="portfolio-asset-cb" value="ETHUSDT" checked> ETHUSDT</label>
+              <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="portfolio-asset-cb" value="SOLUSDT"> SOLUSDT</label>
+              <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="portfolio-asset-cb" value="BNBUSDT"> BNBUSDT</label>
+              <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="portfolio-asset-cb" value="ADAUSDT"> ADAUSDT</label>
+              <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="portfolio-asset-cb" value="XRPUSDT"> XRPUSDT</label>
+            </div>
+          </div>
+          
+          <div id="crypto-timeframe-group" class="form-group">
+            <label for="crypto-timeframe">Таймфрейм</label>
+            <select id="crypto-timeframe" aria-label="Crypto Timeframe">
+              <option value="5m">5 минут</option>
+              <option value="15m">15 минут</option>
+              <option value="1h" selected>1 час</option>
+              <option value="4h">4 часа</option>
+              <option value="1d">1 день</option>
+            </select>
+          </div>
+          
+          <!-- Селекторы Демо (Видны если источник = demo) -->
+          <div id="demo-selectors" class="form-group" style="display: none;">
+            <label for="demo-asset">Класс активов</label>
+            <select id="demo-asset" aria-label="Demo Asset">
+              <option value="STOCK" selected>S&P 500 ETF (SPY) [Акции США]</option>
+              <option value="FOREX">EUR / USD [Валютный рынок]</option>
+              <option value="GOLD">Золото (XAU/USD) [Сырьевой товар]</option>
+            </select>
+          </div>
+          
+          <!-- Селектор CSV Загрузки (Виден если источник = csv) -->
+          <div id="csv-selectors" class="form-group" style="display: none;">
+            <label>Загрузить исторический CSV</label>
+            <div class="file-upload-wrapper">
+              <span class="file-upload-btn" id="file-upload-label">
+                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">upload_file</span>
+                Выбрать CSV файл
+              </span>
+              <input type="file" id="csv-file-input" accept=".csv" aria-label="Csv File Input">
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted); line-height: 1.3; margin-top: 4px; display: inline-block;">
+              Необходимые колонки: Date, Open, High, Low, Close (Volume необязательно). Разделитель определяется автоматически.
+            </span>
+          </div>
+        </div>
+        
+        <!-- БЛОК 2: НАСТРОЙКА СТРАТЕГИИ -->
+        <div class="sidebar-section">
+          <div class="section-title">
+            <span>Торговая стратегия</span>
+            <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent-color);">auto_graph</span>
+          </div>
+          
+          <!-- Объяснение для новичков -->
+          <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px; padding: 8px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border-left: 2px solid var(--accent-color);">
+            <strong>Простыми словами:</strong> Это правила, по которым наш виртуальный робот будет автоматически совершать сделки. Он не думает сам, а строго следует формулам, которые вы выберете.
+          </div>
+          
+          <div class="form-group">
+            <label for="strategy-select">Шаблон стратегии <span class="help-tooltip-trigger" data-tooltip="Выберите алгоритм робота: скользящие EMA, перепроданность RSI, каналы Боллинджера или SMC структура.">?</span></label>
+            <select id="strategy-select" aria-label="Strategy Select">
+              <option value="ema_crossover" selected>Пересечение EMA (EMA Crossover)</option>
+              <option value="rsi_reversion">Возврат к среднему по RSI (RSI Mean Reversion)</option>
+              <option value="bb_reversion">Полосы Боллинджера (BB Reversion)</option>
+              <option value="macd_crossover">Пересечение MACD (MACD Crossover)</option>
+              <option value="smc_ict">Концепция Smart Money (SMC/ICT)</option>
+              <option value="custom">Кастомный код на JS</option>
+            </select>
+          </div>
+          
+          <!-- Контейнер для динамических параметров стратегии (заполняется через JS) -->
+          <div id="dynamic-strategy-params" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Будет заполнено через JS -->
+          </div>
+        </div>
+        
+        <!-- БЛОК 2.5: ОПТИМИЗАТОР ПАРАМЕТРОВ -->
+        <div class="sidebar-section">
+          <div class="section-title">
+            <span>Оптимизатор параметров</span>
+            <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent-color);">tune</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+            Асинхронный Grid-поиск оптимальных параметров выбранной стратегии по историческим данным.
+          </div>
+          <div class="form-group">
+            <label for="opt-metric">Целевая метрика <span class="help-tooltip-trigger" data-tooltip="Параметр, по которому оптимизатор будет ранжировать ТОП-5 настроек: PnL, коэфф. Шарпа или Винрейт.">?</span></label>
+            <select id="opt-metric" style="padding: 8px 10px;" aria-label="Opt Metric">
+              <option value="totalReturn" selected>Доходность (%)</option>
+              <option value="sharpeRatio">Коэфф. Шарпа</option>
+              <option value="winRate">Винрейт (%)</option>
+            </select>
+          </div>
+          <button id="btn-run-optimization" class="filter-btn" style="width: 100%; padding: 10px; font-weight: 600; background: var(--accent-color); color: #fff; border: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">bolt</span>
+            Запустить оптимизацию
+          </button>
+          
+          <div id="opt-results-container" style="display: none; margin-top: 10px; flex-direction: column; gap: 8px;">
+            <label style="font-size: 11px; font-weight: bold; color: var(--text-secondary);">ТОП-5 комбинаций параметров:</label>
+            <div id="opt-results-list" style="display: flex; flex-direction: column; gap: 6px;">
+              <!-- Будет заполнено через JS -->
+            </div>
+            
+            <div id="opt-heatmap-title" style="font-size: 11px; font-weight: bold; color: var(--text-secondary); margin-top: 10px; display: none;">Эффективность параметров (Heatmap):</div>
+            <div id="opt-heatmap-grid" style="display: none; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 6px; padding: 6px; background: rgba(0,0,0,0.12); border-radius: var(--radius-sm);"></div>
+          </div>
+        </div>
+        
+        <!-- БЛОК 3: УПРАВЛЕНИЕ РИСКАМИ -->
+        <div class="sidebar-section">
+          <div class="section-title">
+            <span>Риск и параметры бэктеста</span>
+            <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent-color);">shield</span>
+          </div>
+          
+          <!-- Объяснение для новичков -->
+          <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px; padding: 8px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border-left: 2px solid var(--accent-color);">
+            <strong>Простыми словами:</strong> Настройки симуляции. Здесь вы указываете, сколько денег у вас на старте, берете ли вы плечо (в долг у биржи) и какие комиссии платите за каждую сделку.
+          </div>
+          
+          <div class="form-group">
+            <label for="param-init-balance">Начальный баланс ($) <span class="help-tooltip-trigger" data-tooltip="Сумма виртуальных долларов на старте симуляции.">?</span></label>
+            <input type="number" id="param-init-balance" value="10000" min="100" step="500" aria-label="Param Init Balance">
+          </div>
+          
+          <div class="slider-group">
+            <div class="slider-header">
+              <label for="param-leverage">Кредитное плечо <span class="help-tooltip-trigger" data-tooltip="Множитель объема сделки. Позволяет торговать на сумму больше депозита, повышая доходность и риск ликвидации.">?</span></label>
+              <span class="slider-val" id="val-leverage">1x</span>
+            </div>
+            <input type="range" id="param-leverage" min="1" max="100" value="1" aria-label="Param Leverage">
+          </div>
+          
+          <div class="slider-group">
+            <div class="slider-header">
+              <label for="param-fee">Комиссия сделки (%) <span class="help-tooltip-trigger" data-tooltip="Сбор биржи за вход и выход из сделки (например, 0.05% от объема позиции).">?</span></label>
+              <span class="slider-val" id="val-fee">0.05%</span>
+            </div>
+            <input type="range" id="param-fee" min="0" max="1" value="0.05" step="0.01" aria-label="Param Fee">
+          </div>
+          
+          <div class="slider-group">
+            <div class="slider-header">
+              <label for="param-slippage">Проскальзывание (%) <span class="help-tooltip-trigger" data-tooltip="Задержка исполнения ордера, вызывающая покупку чуть дороже, а продажу чуть дешевле.">?</span></label>
+              <span class="slider-val" id="val-slippage">0.02%</span>
+            </div>
+            <input type="range" id="param-slippage" min="0" max="0.5" value="0.02" step="0.01" aria-label="Param Slippage">
+          </div>
+          
+          <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label for="param-stop-loss">Стоп Лосс (%) <span class="help-tooltip-trigger" data-tooltip="Ограничитель убытков. Сделка закроется автоматически при падении цены на этот процент. 0 - выкл.">?</span></label>
+              <input type="number" id="param-stop-loss" value="2.0" min="0" max="50" step="0.5" placeholder="0 для откл." aria-label="Param Stop Loss">
+            </div>
+            <div>
+              <label for="param-take-profit">Тейк Профит (%) <span class="help-tooltip-trigger" data-tooltip="Фиксатор прибыли. Сделка закроется автоматически при росте цены на этот процент. 0 - выкл.">?</span></label>
+              <input type="number" id="param-take-profit" value="6.0" min="0" max="100" step="1" placeholder="0 для откл." aria-label="Param Take Profit">
+            </div>
+          </div>
+          
+          <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px; margin-top: 4px;">
+            <input type="checkbox" id="param-trailing-sl" style="width: auto; cursor: pointer; height: 16px; margin: 0;" aria-label="Param Trailing Sl">
+            <label for="param-trailing-sl" style="cursor: pointer; font-size: 13px;">Скользящий Стоп (Trailing SL) <span class="help-tooltip-trigger" data-tooltip="Стоп-лосс автоматически подтягивается вверх за ценой, сохраняя заработанную прибыль при развороте.">?</span></label>
+          </div>
+          
+          <div class="form-group">
+            <label for="param-position-sizing">Объем лота <span class="help-tooltip-trigger" data-tooltip="Фиксированный заходит на 95% капитала; Динамический рассчитывает лот от ATR, чтобы при стопе потерять ровно % от баланса.">?</span></label>
+            <select id="param-position-sizing" style="padding: 8px 10px;" aria-label="Param Position Sizing">
+              <option value="fixed" selected>Фиксированный (95% баланса)</option>
+              <option value="risk_atr">Риск % от капитала (ATR)</option>
+            </select>
+          </div>
+
+          <div id="risk-atr-group" class="form-group" style="display: none;">
+            <label for="param-risk-percent">Риск на сделку (% от капитала)</label>
+            <input type="number" id="param-risk-percent" value="2" min="0.1" max="10" step="0.1" aria-label="Param Risk Percent">
+          </div>
+
+          <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px; margin-top: 4px;">
+            <input type="checkbox" id="param-pyramiding" style="width: auto; cursor: pointer; height: 16px; margin: 0;" aria-label="Param Pyramiding">
+            <label for="param-pyramiding" style="cursor: pointer; font-size: 13px;">Пирамидинг (Доливка по тренду) <span class="help-tooltip-trigger" data-tooltip="Докупка объема позиции при повторных сигналах в том же направлении тренда (усреднение по тренду до 3 раз).">?</span></label>
+          </div>
+        </div>
+        
+        
+        <!-- КНОПКА ЗАПУСКА -->
+        <button id="btn-run-backtest" class="btn-primary">
+          <span class="material-symbols-outlined">play_circle</span>
+          Запустить бэктест
+        </button>
+        
+        <!-- КНОПКА СБРОСА -->
+        <button id="btn-reset-defaults" class="filter-btn" style="width: 100%; margin-top: 8px; padding: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">restart_alt</span>
+          Сбросить настройки
+        </button>
+        
+      </aside>
+      
+      <!-- ОСНОВНАЯ ПАНЕЛЬ ОТОБРАЖЕНИЯ (MAIN CONTENT) -->
+      <main class="main-content">
+        
+        <!-- СТАТИСТИКА (KPI METRICS ROW) -->
+        <div class="metrics-row">
+          
+          <div class="metric-card accent-purple">
+            <div class="metric-label">Итоговый баланс</div>
+            <div class="metric-value" id="metric-final-equity">$10,000.00</div>
+            <div class="metric-trend" id="metric-equity-trend">--</div>
+          </div>
+          
+          <div class="metric-card accent-green">
+            <div class="metric-label">Общая доходность</div>
+            <div class="metric-value" id="metric-total-return">0.00%</div>
+            <div class="metric-trend up" id="metric-return-trend">--</div>
+          </div>
+          
+          <div class="metric-card accent-blue">
+            <div class="metric-label">Винрейт (Win Rate)</div>
+            <div class="metric-value" id="metric-win-rate">0.00%</div>
+            <div class="metric-trend" id="metric-win-trend">--</div>
+          </div>
+          
+          <div class="metric-card accent-purple">
+            <div class="metric-label">Коэфф. Шарпа</div>
+            <div class="metric-value" id="metric-sharpe">0.00</div>
+            <div class="metric-trend" id="metric-sharpe-trend">--</div>
+          </div>
+          
+          <div class="metric-card accent-red">
+            <div class="metric-label">Макс. просадка</div>
+            <div class="metric-value" id="metric-drawdown">0.00%</div>
+            <div class="metric-trend down" id="metric-drawdown-trend">--</div>
+          </div>
+          
+          <div class="metric-card accent-blue">
+            <div class="metric-label">Профит-фактор</div>
+            <div class="metric-value" id="metric-profit-factor">0.00</div>
+            <div class="metric-trend" id="metric-pf-trend">--</div>
+          </div>
+          
+        </div>
+        
+        <!-- ВКЛАДКИ (TABS CONTAINER) -->
+        <div class="tabs-container">
+          
+          <!-- НАВИГАЦИЯ ВКЛАДОК -->
+          <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="tab-chart">
+              <span class="material-symbols-outlined" style="font-size: 18px;">candlestick_chart</span>
+              График TradingView
+            </button>
+            <button class="tab-btn" data-tab="tab-equity">
+              <span class="material-symbols-outlined" style="font-size: 18px;">show_chart</span>
+              Кривая баланса
+            </button>
+            <button class="tab-btn" data-tab="tab-trades">
+              <span class="material-symbols-outlined" style="font-size: 18px;">list_alt</span>
+              История сделок (<span id="lbl-trade-count">0</span>)
+            </button>
+            <button class="tab-btn" data-tab="tab-editor" id="btn-editor-tab">
+              <span class="material-symbols-outlined" style="font-size: 18px;">code</span>
+              Редактор кода стратегии
+            </button>
+            <button class="tab-btn" data-tab="tab-regime" id="btn-regime-tab">
+              <span class="material-symbols-outlined" style="font-size: 18px;">insights</span>
+              Фазовый анализ
+            </button>
+            <button class="tab-btn" data-tab="tab-faq">
+              <span class="material-symbols-outlined" style="font-size: 18px;">help</span>
+              Справка и FAQ
+            </button>
+          </nav>
+          
+          <!-- КОНТЕНТ ВКЛАДОК -->
+          <div class="tab-content">
+            
+            <!-- ВКЛАДКА 1: ИНТЕРАКТИВНЫЙ ГРАФИК -->
+            <div class="tab-panel active" id="tab-chart">
+              <div class="chart-wrapper">
+                <!-- Оверлей загрузки котировок -->
+                <div class="chart-loading-overlay" id="chart-loading-overlay">
+                  <div class="chart-loading-spinner"></div>
+                  <div class="chart-loading-text" id="chart-loading-text">Загрузка котировок...</div>
+                </div>
+                
+                <!-- ПАНЕЛЬ РИСОВАНИЯ (DRAWING TOOLBAR) -->
+                <div class="drawing-toolbar" style="position: absolute; left: 15px; top: 80px; z-index: 10; display: flex; flex-direction: column; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 8px; border-radius: var(--radius-sm); backdrop-filter: blur(15px); box-shadow: var(--shadow-md);">
+                  <button class="draw-tool-btn active" id="tool-cursor" title="Курсор / Просмотр" style="background: none; border: none; cursor: pointer; color: var(--text-main); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">near_me</span>
+                  </button>
+                  <button class="draw-tool-btn" id="tool-trend" title="Трендовая линия (Клик на графике для старта и финиша)" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">trending_flat</span>
+                  </button>
+                  <button class="draw-tool-btn" id="tool-horizontal" title="Горизонтальный уровень (Клик на цену)" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">horizontal_rule</span>
+                  </button>
+                  <button class="draw-tool-btn" id="tool-clear" title="Стереть всё" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">delete</span>
+                  </button>
+                </div>
+
+                <!-- Главный график свечей -->
+                <div class="chart-container" id="candle-chart-container">
+                  <!-- Легенда оверлея на графике -->
+                  <div class="chart-legend" id="main-chart-legend">
+                    <div class="legend-row">
+                      <span class="legend-symbol" id="legend-symbol-name">BTCUSDT</span>
+                      <span class="legend-val">O:<span id="legend-open">0.00</span></span>
+                      <span class="legend-val">H:<span id="legend-high">0.00</span></span>
+                      <span class="legend-val">L:<span id="legend-low">0.00</span></span>
+                      <span class="legend-val">C:<span id="legend-close">0.00</span></span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Под-график индикатора (MACD или RSI) -->
+                <div class="subchart-container" id="indicator-subchart-container">
+                  <div class="chart-legend" style="border-color: rgba(255,255,255,0.02)">
+                    <div class="legend-row">
+                      <span class="legend-symbol" style="color: var(--accent-color);" id="subchart-indicator-title">RSI (14)</span>
+                      <span class="legend-val">Знач:<span id="legend-indicator-val">0.00</span></span>
+                    </div>
+                  </div>
+                </div>
+                
+              </div>
+            </div>
+            
+            <!-- ВКЛАДКА 2: КРИВАЯ БАЛАНСА -->
+            <div class="tab-panel" id="tab-equity">
+              <div class="chart-wrapper">
+                <div class="chart-container" id="equity-chart-container">
+                  <div class="chart-legend">
+                    <div class="legend-row">
+                      <span class="legend-symbol" style="color: var(--color-long);">Кривая изменения баланса портфеля</span>
+                      <span class="legend-val">Баланс:<span id="legend-equity-val">$10,000.00</span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- ВКЛАДКА 3: ЛОГ СДЕЛОК -->
+            <div class="tab-panel" id="tab-trades">
+              <div class="table-toolbar">
+                <div class="table-filter-group">
+                  <button class="filter-btn active" data-filter="all">Все сделки</button>
+                  <button class="filter-btn" data-filter="wins">Только прибыльные</button>
+                  <button class="filter-btn" data-filter="losses">Только убыточные</button>
+                </div>
+                <button class="filter-btn" onclick="exportTradesCSV()">
+                  <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">download</span>
+                  Экспорт в CSV
+                </button>
+              </div>
+              
+              <div class="table-container">
+                <table id="trades-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Тип</th>
+                      <th>Время входа</th>
+                      <th>Время выхода</th>
+                      <th>Цена входа</th>
+                      <th>Цена выхода</th>
+                      <th>Комиссия</th>
+                      <th>Прибыль ($)</th>
+                      <th>Прибыль (%)</th>
+                      <th>Причина закр.</th>
+                      <th>Текущий баланс</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trades-table-body">
+                    <!-- Загружается динамически через JS -->
+                    <tr>
+                      <td colspan="11" class="empty-state" style="text-align: center; padding: 40px;">
+                        <span class="material-symbols-outlined empty-icon">analytics</span>
+                        <p>Тесты еще не запускались. Нажмите кнопку "Запустить бэктест" для начала работы.</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <!-- ВКЛАДКА 4: РЕДАКТОР КАСТОМНОГО КОДА -->
+            <div class="tab-panel" id="tab-editor">
+              <div class="editor-layout">
+                
+                <div class="code-container">
+                  <div class="editor-header">
+                    <div class="editor-title" id="editor-mode-title">strategy.js (Режим: Код)</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <button class="filter-btn active" id="btn-mode-code" style="padding: 4px 8px; font-size: 11px;">💻 Код</button>
+                      <button class="filter-btn" id="btn-mode-nocode" style="padding: 4px 8px; font-size: 11px;">🧩 No-Code</button>
+                      <button class="filter-btn" id="btn-mode-ai" style="padding: 4px 8px; font-size: 11px;">🤖 ИИ-Генератор</button>
+                      <button class="filter-btn" onclick="loadEditorTemplate()" style="padding: 4px 8px; font-size: 11px;">Сбросить</button>
+                    </div>
+                  </div>
+                  
+                  <!-- AI ИИ-Генератор торговых стратегий -->
+                  <div id="ai-generator-container" style="display: none; padding: 20px; overflow-y: auto; height: calc(100% - 40px); flex-direction: column; gap: 15px; font-family: var(--font-sans);">
+                    <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.4;">
+                      Опишите правила торговой стратегии обычным текстом на русском языке. ИИ-Ассистент на базе Google Gemini автоматически сгенерирует работающий JavaScript-код для песочницы QuantSphere.
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 5px;">
+                      <label for="ai-gemini-key" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-main); margin-bottom: 6px;">
+                        <span>Google Gemini API Key:</span>
+                        <a href="https://aistudio.google.com/" target="_blank" style="color: var(--accent-color); text-decoration: none; font-size: 11px;">Получить бесплатный ключ →</a>
+                      </label>
+                      <input type="password" id="ai-gemini-key" placeholder="Вставьте ваш Gemini API Key (хранится локально и безопасно)..." />
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 5px;">
+                      <label for="ai-model-select" style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block;">Модель искусственного интеллекта:</label>
+                      <select id="ai-model-select" style="padding: 8px 10px;" aria-label="Gemini Model">
+                        <option value="gemini-3.5-flash" selected>⚡ Gemini 3.5 Flash (Рекомендуемая: высокая скорость и логика)</option>
+                        <option value="gemini-3.5-pro">🤖 Gemini 3.5 Pro (Максимальный интеллект для сложного кода)</option>
+                        <option value="gemini-3.1-pro">🧠 Gemini 3.1 Pro (Альтернативная pro-модель)</option>
+                      </select>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 5px;">
+                      <label for="ai-prompt-input" style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block;">Описание вашей торговой стратегии:</label>
+                      <textarea id="ai-prompt-input" placeholder="Например: Покупаем (BUY), когда быстрая скользящая средняя EMA 10 пересекает медленную EMA 30 снизу вверх, при условии что индекс RSI(14) находится ниже 40. Выходим из позиции (EXIT), когда цена пересекает медленную EMA 30 сверху вниз или если RSI поднимается выше 75..." style="min-height: 120px; line-height: 1.4; resize: vertical;"></textarea>
+                    </div>
+                    
+                    <button id="btn-generate-ai-strategy" class="btn-primary" style="padding: 12px 20px; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; align-self: flex-start; cursor: pointer; border: none; border-radius: var(--radius-sm); background: var(--accent-color); color: #fff;">
+                      <span class="material-symbols-outlined" style="font-size: 20px;">smart_toy</span>
+                      🤖 Сгенерировать ИИ-стратегию
+                    </button>
+                  </div>
+                  
+                  <!-- No-Code визуальный конструктор стратегий -->
+                  <div id="nocode-builder-container" style="display: none; padding: 20px; overflow-y: auto; height: calc(100% - 40px); flex-direction: column; gap: 20px; font-family: var(--font-sans);">
+                    <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px;">
+                      Создавайте правила входа и выхода визуально без единой строчки кода. Они будут автоматически перенесены в код стратегии.
+                    </div>
+                    
+                    <div class="nocode-section" style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.01); padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                      <div style="font-size: 13px; font-weight: bold; color: var(--color-long); display: flex; align-items: center; gap: 6px;">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">login</span>
+                        Условие входа LONG (BUY)
+                      </div>
+                      <div class="nocode-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <span>ЕСЛИ</span>
+                        <select id="nc-buy-ind1" style="width: auto; padding: 6px 10px; font-size: 13px;" aria-label="Nc Buy Ind1">
+                          <option value="emaFast">EMA Fast (9)</option>
+                          <option value="emaSlow">EMA Slow (21)</option>
+                          <option value="rsi">RSI (14)</option>
+                          <option value="close">Цена закрытия</option>
+                        </select>
+                        <select id="nc-buy-op" style="width: auto; padding: 6px 10px; font-size: 13px;" aria-label="Nc Buy Op">
+                          <option value="cross_above">пересекает снизу вверх</option>
+                          <option value="cross_below">пересекает сверху вниз</option>
+                          <option value="gt">больше</option>
+                          <option value="lt">меньше</option>
+                        </select>
+                        <select id="nc-buy-ind2" style="width: auto; padding: 6px 10px; font-size: 13px;" aria-label="Nc Buy Ind2">
+                          <option value="emaSlow">EMA Slow (21)</option>
+                          <option value="emaFast">EMA Fast (9)</option>
+                          <option value="rsi">RSI (14)</option>
+                          <option value="value">Значение</option>
+                        </select>
+                        <input type="number" id="nc-buy-val" value="30" style="width: 80px; display: none; padding: 6px 8px; font-size: 13px;" aria-label="Nc Buy Val">
+                      </div>
+                    </div>
+
+                    <div class="nocode-section" style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.01); padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                      <div style="font-size: 13px; font-weight: bold; color: var(--color-short); display: flex; align-items: center; gap: 6px;">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">logout</span>
+                        Условие выхода (EXIT)
+                      </div>
+                      <div class="nocode-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <span>ЕСЛИ</span>
+                        <select id="nc-exit-ind1" style="width: auto; padding: 6px 10px; font-size: 13px;" aria-label="Nc Exit Ind1">
+                          <option value="emaFast">EMA Fast (9)</option>
+                          <option value="emaSlow">EMA Slow (21)</option>
+                          <option value="rsi">RSI (14)</option>
+                          <option value="close">Цена закрытия</option>
+                        </select>
+                        <select id="nc-exit-op" style="width: auto; padding: 6px 10px; font-size: 13px;" aria-label="Nc Exit Op">
+                          <option value="cross_below">пересекает сверху вниз</option>
+                          <option value="cross_above">пересекает снизу вверх</option>
+                          <option value="gt">больше</option>
+                          <option value="lt">меньше</option>
+                        </select>
+                        <select id="nc-exit-ind2" style="width: auto; padding: 6px 10px; font-size: 13px;" aria-label="Nc Exit Ind2">
+                          <option value="emaSlow">EMA Slow (21)</option>
+                          <option value="emaFast">EMA Fast (9)</option>
+                          <option value="rsi">RSI (14)</option>
+                          <option value="value">Значение</option>
+                        </select>
+                        <input type="number" id="nc-exit-val" value="70" style="width: 80px; display: none; padding: 6px 8px; font-size: 13px;" aria-label="Nc Exit Val">
+                      </div>
+                    </div>
+
+                    <button id="btn-save-nocode" class="btn-primary" style="margin-top: 10px; font-size: 13px; padding: 10px 16px;">
+                      <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
+                      Сгенерировать код стратегии
+                    </button>
+                  </div>
+
+                  <textarea id="custom-strategy-code" class="code-editor" spellcheck="false" aria-label="Custom Strategy Code">// Объявление индикаторов для предварительного расчета
+// Формат: // INDICATOR: [имя] = [Тип]([Параметры])
+// Поддерживаемые типы: SMA(period), EMA(period), RSI(period), BB(period, stddev), MACD(fast, slow, signal), ATR(period)
+
+// INDICATOR: emaFast = EMA(9)
+// INDICATOR: emaSlow = EMA(21)
+// INDICATOR: rsi = RSI(14)
+
+// Инициализация состояния (выполняется один раз при старте)
+if (!state.initialized) {
+  state.initialized = true;
+  state.lastSignal = 'HOLD';
+}
+
+// ----------------------------------------------------
+// Логика итерации по свечам:
+// Вычисляется для каждой свечи по порядку от i = start.
+// 'c' - текущая свеча, 'prev' - предыдущая свеча.
+// Доступны массивы: 'indicators.emaFast', 'indicators.rsi' и т.д.
+// Объект 'position' содержит данные о текущей сделке (если есть)
+// ----------------------------------------------------
+
+const currentRsi = indicators.rsi[i];
+const fastEMA = indicators.emaFast[i];
+const slowEMA = indicators.emaSlow[i];
+
+if (currentRsi === null || fastEMA === null || slowEMA === null) {
+  return 'HOLD';
+}
+
+// 1. Условие входа: Быстрая EMA пересекает Медленную EMA снизу вверх
+const isBullishCross = fastEMA > slowEMA;
+
+if (!position) {
+  // Если позиции нет, входим в Long если RSI < 60 и тренд восходящий
+  if (isBullishCross && currentRsi < 60) {
+    return 'BUY'; // Открыть LONG (покупка)
+  }
+} else {
+  // Условие выхода: если в LONG сделке, выходим при развороте тренда вниз
+  if (position.type === 'LONG' && !isBullishCross) {
+    return 'EXIT'; // Закрыть сделку
+  }
+}
+
+return 'HOLD';
+</textarea>
+                </div>
+                
+                <!-- Панель документации к редактору -->
+                <div class="editor-docs">
+                  <div class="docs-title">Справка разработчика</div>
+                  <p class="docs-text">Напишите собственную торговую стратегию на стандартном JavaScript (ES6+). Скрипт выполняется хронологически по каждой свече.</p>
+                  
+                  <div class="docs-list">
+                    <div class="docs-item">
+                      <code>c</code>
+                      <span>Текущий объект свечи. Свойства: <code>c.open</code>, <code>c.high</code>, <code>c.low</code>, <code>c.close</code>, <code>c.volume</code>, <code>c.time</code>.</span>
+                    </div>
+                    <div class="docs-item">
+                      <code>prev</code>
+                      <span>Предыдущий объект свечи.</span>
+                    </div>
+                    <div class="docs-item">
+                      <code>position</code>
+                      <span>Если активна сделка: <code>position.type</code> ('LONG' или 'SHORT'), <code>position.entryPrice</code>, <code>position.slPrice</code>, <code>position.tpPrice</code>.</span>
+                    </div>
+                    <div class="docs-item">
+                      <code>state</code>
+                      <span>Постоянный объект состояния для сохранения переменных между свечами.</span>
+                    </div>
+                    <div class="docs-item">
+                      <code>indicators.[имя]</code>
+                      <span>Массив предварительно вычисленного индикатора. Пример: <code>indicators.rsi[i]</code>.</span>
+                    </div>
+                  </div>
+                  
+                  <div class="sidebar-section" style="padding: 10px; margin-top: 10px; border-style: dashed; background: none;">
+                    <div class="docs-title" style="font-size: 11px; text-transform: uppercase;">Сигналы выхода (Return):</div>
+                    <div style="font-size: 11px; font-family: var(--font-mono); margin-top: 5px;">
+                      - <span style="color: var(--color-long); font-weight: 700;">'BUY'</span>: Открыть Long позицию<br>
+                      - <span style="color: var(--color-short); font-weight: 700;">'SELL'</span>: Открыть Short позицию<br>
+                      - <span style="color: var(--accent-color); font-weight: 700;">'EXIT'</span>: Закрыть текущую сделку<br>
+                      - <span style="color: var(--text-muted);">'HOLD'</span>: Ничего не предпринимать
+                    </div>
+                  </div>
+                </div>
+                
+              </div>
+            </div>
+            
+            <!-- ВКЛАДКА: ФАЗОВЫЙ АНАЛИЗ (MARKET REGIMES) -->
+            <div class="tab-panel" id="tab-regime" style="overflow-y: auto; padding: 20px; height: 100%;">
+              <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                
+                <div class="sidebar-section" style="padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                  <div class="section-title" style="font-size: 14px; font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--text-main);">
+                    <span>Распределение рынка по фазам</span>
+                    <span class="material-symbols-outlined" style="font-size: 20px; color: var(--accent-color);">pie_chart</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                      <span>📈 Восходящий тренд (Bullish Trend):</span>
+                      <strong id="regime-bullish-pct" style="font-family: var(--font-mono); color: var(--color-long);">0.0%</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                      <span>📉 Нисходящий тренд (Bearish Trend):</span>
+                      <strong id="regime-bearish-pct" style="font-family: var(--font-mono); color: var(--color-short);">0.0%</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                      <span>↕️ Боковой коридор (Ranging/Flat):</span>
+                      <strong id="regime-ranging-pct" style="font-family: var(--font-mono); color: #ff9f1c;">0.0%</strong>
+                    </div>
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <strong>Как это считается:</strong> Мы используем профессиональный трендовый фильтр на основе индикатора <strong>ADX (Average Directional Index)</strong> с периодом 14 и наклоном экспоненциальной скользящей средней <strong>EMA 50</strong>. Значение ADX выше 22 подтверждает наличие сильного направленного тренда на рынке, в то время как значение ниже указывает на флэт.
+                  </div>
+                </div>
+                
+                <div class="sidebar-section" style="padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                  <div class="section-title" style="font-size: 14px; font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--text-main);">
+                    <span>Эффективность стратегии в разных фазах</span>
+                    <span class="material-symbols-outlined" style="font-size: 20px; color: var(--accent-color);">query_stats</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.04); padding-bottom: 8px;">
+                      <span style="font-size: 13px;">📈 Прибыль в тренде вверх:</span>
+                      <span id="regime-bullish-pnl" style="font-weight: 700; font-family: var(--font-mono); color: var(--color-long);">$0.00 (0 сделок)</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.04); padding-bottom: 8px;">
+                      <span style="font-size: 13px;">📉 Прибыль в тренде вниз:</span>
+                      <span id="regime-bearish-pnl" style="font-weight: 700; font-family: var(--font-mono); color: var(--color-short);">$0.00 (0 сделок)</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 4px;">
+                      <span style="font-size: 13px;">↕️ Прибыль во флэте (боковике):</span>
+                      <span id="regime-ranging-pnl" style="font-weight: 700; font-family: var(--font-mono); color: #ff9f1c;">$0.00 (0 сделок)</span>
+                    </div>
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    💡 <strong>Важное наблюдение:</strong> Данная панель поможет вам моментально обнаружить слабые стороны торгового робота. К примеру, если ваша трендовая стратегия приносит прибыль в тренде, но полностью сливает депозит во флэте, вам необходимо внедрить ADX фильтр в условия входа стратегии.
+                  </div>
+                </div>
+                
+              </div>
+            </div>
+            
+            <!-- ВКЛАДКА 5: ПОЛНОЕ РУКОВОДСТВО И FAQ -->
+            <div class="tab-panel" id="tab-faq" style="overflow-y: auto; padding: 24px; height: 100%;">
+              <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+                
+                <div style="text-align: center; margin-bottom: 12px;">
+                  <h2 style="font-size: 28px; font-weight: 800; background: linear-gradient(to right, var(--text-main), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Справочный Центр QuantSphere</h2>
+                  <p style="color: var(--text-secondary); font-size: 14px; margin-top: 6px;">Полное профессиональное руководство пользователя, подробное объяснение финансовых терминов и инструкция по проекту.</p>
+                </div>
+                
+                <div class="faq-grid">
+                  
+                  <!-- КОЛОНКА 1: АЗБУКА ТРЕЙДИНГА -->
+                  <div class="faq-column">
+                    <div class="faq-section-title">
+                      <span class="material-symbols-outlined" style="color: var(--accent-color);">menu_book</span>
+                      Основы и настройки
+                    </div>
+                    
+                    <!-- Карта 1: Бэктестинг -->
+                    <div class="faq-card accent-purple">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--accent-color);">settings_backup_restore</span>
+                        Что такое бэктестинг?
+                      </div>
+                      <div class="faq-card-content">
+                        <p><strong>Бэктестинг</strong> — это симуляция торговли робота на исторических графиках цен прошлых лет.</p>
+                        <p>Вместо того чтобы рисковать реальными деньгами и проверять стратегию месяцами, движок прокручивает историю котировок за секунды и вычисляет, принесли бы ваши правила прибыль или привели к полному сливу депозита.</p>
+                        <div class="faq-highlight-box">
+                          💡 <strong>Суть:</strong> Проверка гипотез в безопасных лабораторных условиях перед выходом на реальную биржу.
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Карта 2: Плечо -->
+                    <div class="faq-card accent-blue">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: #00d2ff;">account_balance</span>
+                        Кредитное плечо (Leverage)
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Инструмент, позволяющий совершать сделки на сумму, во много раз превышающую ваш личный баланс. Это умножитель вашей покупательской способности.</p>
+                        <p><strong>Пример (Плечо 10x):</strong> имея $1,000, вы торгуете так, будто у вас $10,000. В случае роста актива на 5% вы зарабатываете $500 (50% доходности на личный баланс). Но если актив упадет на 10%, ваш убыток составит $1,000, и биржа закроет сделку принудительно (произойдет <strong>ликвидация</strong>).</p>
+                        <div class="faq-highlight-box">
+                          ⚠️ <strong>Внимание:</strong> Высокое плечо сильно ускоряет рост вашего баланса, но пропорционально приближает риск полной ликвидации!
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Карта 3: Стоп-Лосс и Тейк-Профит -->
+                    <div class="faq-card accent-green">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-long);">gpp_good</span>
+                        Стоп-Лосс и Тейк-Профит
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Автоматические «страховки», закрывающие сделки при достижении заданного процента:</p>
+                        <ul>
+                          <li><strong>Стоп-Лосс (Stop Loss)</strong>: Уровень фиксации убытка. Если цена пошла не в ту сторону, Стоп-Лосс закроет позицию автоматически, защищая ваш баланс от глубоких потерь.</li>
+                          <li><strong>Тейк-Профит (Take Profit)</strong>: Уровень фиксации прибыли. Закрывает сделку автоматически в плюс при достижении вашей финансовой цели.</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <!-- Карта 4: Расходы -->
+                    <div class="faq-card accent-red">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-short);">payments</span>
+                        Комиссии и Проскальзывание
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Скрытые расходы, сильно влияющие на доходность:</p>
+                        <ul>
+                          <li><strong>Комиссия за сделку</strong> — плата, которую забирает биржа за проведение операции (наш стандарт = 0.05% от суммы позиции при входе и выходе).</li>
+                          <li><strong>Проскальзывание (Slippage)</strong> — разница между ценой, которую вы увидели на графике, и ценой реальной покупки. Возникает из-за сетевого пинга и нехватки объемов на рынке.</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <!-- Карта 5: LIVE Режим -->
+                    <div class="faq-card accent-green">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-long);">sensors</span>
+                        Что такое Режим LIVE и как им пользоваться?
+                      </div>
+                      <div class="faq-card-content">
+                        <p><strong>Режим LIVE</strong> — это симуляция торговли робота на реальном рынке в прямом эфире без риска для ваших средств (Live Paper Trading).</p>
+                        <p><strong>Как им пользоваться и управлять графиком:</strong></p>
+                        <ul>
+                          <li><strong>1. Запуск</strong>: Нажмите зеленую кнопку <strong>«LIVE»</strong> в верхней панели (с иконкой датчика). Платформа подключится к бирже Binance по WebSocket и перейдет на 1-минутный таймфрейм.</li>
+                          <li><strong>2. Живой график</strong>: Каждая новая сделка на бирже будет моментально обновлять крайнюю свечу на графике в реальном времени.</li>
+                          <li><strong>3. Свободное управление (Без скачков!)</strong>: Вы можете свободно двигать график вправо/влево, вверх/вниз и растягивать оси. При поступлении новых тиков график больше **не будет скакать обратно** к последней цене, позволяя вам спокойно изучать историю!</li>
+                          <li><strong>4. Логика расчетов робота</strong>: Робот делает пересчет индикаторов и торговых правил *строго на закрытии каждой минутной свечи*. Это классический подход, защищающий от ложных сигналов («перерисовки») во время колебаний текущей свечи.</li>
+                          <li><strong>5. Сигналы</strong>: При возникновении сигнала вы услышите звук, увидите всплывающее тост-уведомление и стрелку входа/выхода на графике.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- КОЛОНКА 2: АНАЛИЗ МЕТРИК -->
+                  <div class="faq-column">
+                    <div class="faq-section-title">
+                      <span class="material-symbols-outlined" style="color: var(--accent-color);">analytics</span>
+                      Чтение показателей
+                    </div>
+                    
+                    <!-- Карта 1: Коэффициент Шарпа -->
+                    <div class="faq-card accent-purple">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--accent-color);">trending_up</span>
+                        Коэффициент Шарпа (Sharpe Ratio)
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Главный показатель стабильности и надежности вашей прибыли в мире финансов. Он сравнивает доходность стратегии со степенью ее хаотичности и риска.</p>
+                        <ul>
+                          <li><strong>Шарп &lt; 0</strong>: Убыточная или крайне опасная система.</li>
+                          <li><strong>Шарп от 0 до 1.0</strong>: Посредственный результат (прибыль есть, но баланс лихорадит).</li>
+                          <li><strong>Шарп от 1.0 до 2.0</strong>: Отличная, стабильная стратегия.</li>
+                          <li><strong>Шарп &gt; 2.0</strong>: Великолепно. Идеально сбалансированная прибыль с минимальной тряской баланса.</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <!-- Карта 2: Просадка -->
+                    <div class="faq-card accent-red">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-short);">south</span>
+                        Максимальная просадка (Drawdown)
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Худший сценарий для вашего кошелька. Это наибольшее падение баланса от его пикового (наивысшего) значения до локального минимума.</p>
+                        <p><strong>Пример:</strong> Ваш депозит вырос с $10,000 до $15,000. Затем робот понес серию убытков, и баланс упал до $12,000, после чего восстановился до $20,000. Максимальная просадка составила <strong>20%</strong> (падение на $3,000 от пика в $15,000).</p>
+                        <div class="faq-highlight-box">
+                          📈 <strong>Норма:</strong> Хорошие консервативные алгоритмы имеют просадку не более 10-15%.
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Карта 3: Профит-фактор -->
+                    <div class="faq-card accent-green">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-long);">calculate</span>
+                        Профит-фактор (Profit Factor)
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Математическое соотношение общей прибыли к общему убытку за весь бэктест.</p>
+                        <p>Если сумма всех прибыльных сделок составила $3,000, а убыточных — $1,500, то Профит-фактор равен <strong>2.0</strong>. Это значит, что на каждый потерянный доллар робот заработал $2 прибыли.</p>
+                        <ul>
+                          <li><strong>Меньше 1.0</strong>: Стратегия сливает.</li>
+                          <li><strong>1.1 – 1.4</strong>: Умеренно прибыльная.</li>
+                          <li><strong>1.5 – 2.5</strong>: Очень сильная и стабильная.</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <!-- Карта 4: Винрейт против Риска -->
+                    <div class="faq-card accent-blue">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: #00d2ff;">balance</span>
+                        Винрейт (Win Rate) vs R:R
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Часто новички ищут стратегию со 100% винрейтом (процентом побед). На практике это ловушка.</p>
+                        <p>Прибыльность зависит от соотношения Риска к Прибыли (Risk to Reward — R:R). Если ваш средний убыток составляет $10, а средняя прибыль — $30 (R:R = 1:3), то вам достаточно выигрывать всего в <strong>30% сделок</strong>, чтобы стабильно увеличивать баланс!</p>
+                      </div>
+                    </div>
+
+                    <!-- Карта 5: Где находится Редактор кода и No-Code конструктор -->
+                    <div class="faq-card accent-purple">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--accent-color);">code</span>
+                        Где находится Редактор кода и No-Code конструктор?
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Они расположены на вкладке <strong>«Редактор кода стратегии»</strong> в самом верхнем горизонтальном меню (вкладка со значком <code>code</code>, четвертая по счету).</p>
+                        <p><strong>Быстрый доступ из боковой панели:</strong></p>
+                        <p>Если в левой колонке в поле <em>«Шаблон стратегии»</em> вы выберете <strong>«Кастомный код на JS»</strong>, прямо под ним появится специальная кнопка быстрого перехода к редактору.</p>
+                        <p><strong>Как устроен редактор:</strong></p>
+                        <ul>
+                          <li><strong>🧩 No-Code (Конструктор)</strong>: Позволяет создавать правила входа (BUY) и выхода (EXIT) визуально с помощью выпадающих списков. После настройки нажмите <strong>«Сгенерировать код стратегии»</strong>, чтобы перенести скомпилированный код в редактор.</li>
+                          <li><strong>💻 Код (JavaScript-редактор)</strong>: Полноценный встроенный текстовый редактор с подсветкой синтаксиса, где вы можете свободно писать свой алгоритм вручную.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- КОЛОНКА 3: SMART MONEY И СКРИПТЫ -->
+                  <div class="faq-column">
+                    <div class="faq-section-title">
+                      <span class="material-symbols-outlined" style="color: var(--accent-color);">psychology</span>
+                      Smart Money и Скрипты
+                    </div>
+                    
+                    <!-- Карта 1: Философия SMC -->
+                    <div class="faq-card accent-orange">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: #ff9f1c;">hub</span>
+                        Что такое Smart Money (SMC)?
+                      </div>
+                      <div class="faq-card-content">
+                        <p><strong>Smart Money (Умные Деньги)</strong> — концепция анализа рынка, основанная на отслеживании крупных финансовых институтов (банков, фондов, маркетмейкеров).</p>
+                        <p>Вместо веры в стандартные индикаторы, этот метод ищет манипуляции, зоны скопления стоп-ордеров розничных трейдеров (ликвидность) и торгует в направлении истинного движения институционального капитала.</p>
+                      </div>
+                    </div>
+                    
+                    <!-- Карта 2: Структура рынка -->
+                    <div class="faq-card accent-blue">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: #00d2ff;">analytics</span>
+                        BOS и CHoCH структура
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Рынок движется зигзагами, формируя вершины (свинги). Наш алгоритм SMC отслеживает пробои этих вершин:</p>
+                        <ul>
+                          <li><strong>BOS (Break of Structure)</strong>: Пробой структуры по направлению тренда. Подтверждает силу тренда и дает сигнал на продолжение покупок.</li>
+                          <li><strong>CHoCH (Change of Character)</strong>: Слом характера рынка. Пробой последнего противоположного свинга. Считается самым ранним техническим сигналом о развороте тренда.</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <!-- Карта 3: Паттерн Квазимодо -->
+                    <div class="faq-card accent-orange">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: #ff9f1c;">query_stats</span>
+                        Паттерн Квазимодо (QML)
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Паттерн разворота тренда с глубоким сбором ликвидности. Схема выглядит так:</p>
+                        <p>1. Цена делает минимум (L), затем максимум (H).</p>
+                        <p>2. Обрушивается ниже, выбивая стопы — делает более низкий минимум (LL).</p>
+                        <p>3. Резко взлетает вверх, пробивая максимум H (делает HH) — формирует слом тренда CHoCH.</p>
+                        <p>4. Мы выставляем лимитный ордер на покупку на уровень первого минимума (L) — это <strong>Quasimodo Level (QML)</strong>. При возврате цены ордер активируется с ювелирной точностью.</p>
+                      </div>
+                    </div>
+                    
+                    <!-- Карта 4: Инструкция по написанию -->
+                    <div class="faq-card accent-purple">
+                      <div class="faq-card-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--accent-color);">terminal</span>
+                        Как писать свои JS-стратегии?
+                      </div>
+                      <div class="faq-card-content">
+                        <p>Наш компилятор выполняет ваш скрипт поочередно для каждой свечи под индексом <code>i</code>.</p>
+                        <p><strong>Доступные переменные и объекты:</strong></p>
+                        <ul>
+                          <li><code>c</code> — текущая свеча (содержит <code>c.open</code>, <code>c.high</code>, <code>c.low</code>, <code>c.close</code>, <code>c.volume</code>, <code>c.time</code>).</li>
+                          <li><code>prev</code> — предыдущая свеча (индекс <code>i - 1</code>).</li>
+                          <li><code>indicators.rsi[i]</code> — значения индикатора RSI для текущей свечи. Также доступны <code>emaFast[i]</code> и <code>emaSlow[i]</code>.</li>
+                          <li><code>indicators.smc[i]</code> — SMC-структуры (например, <code>indicators.smc[i].choch</code> или <code>indicators.smc[i].bos</code>).</li>
+                          <li><code>position</code> — объект текущей сделки (если открыта, содержит <code>position.entryPrice</code>, <code>position.type</code>).</li>
+                        </ul>
+                        <div class="faq-highlight-box" style="margin-top: 10px;">
+                          💻 <strong>Что возвращать:</strong><br>
+                          • <code>'BUY'</code> — открыть Long (покупка)<br>
+                          • <code>'SELL'</code> — открыть Short (продажа)<br>
+                          • <code>'EXIT'</code> — закрыть текущую сделку по рынку<br>
+                          • <code>'HOLD'</code> — ничего не делать (удерживать позицию)
+                        </div>
+                        <p style="margin-top: 10px;">После редактирования нажмите <strong>«Сохранить и применить стратегию»</strong> (или <code>Ctrl + S</code>) и запустите бэктест на графике!</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                </div>
+                
+              </div>
+            </div>
+            
+          </div>
+        </div>
+        
+      </main>
+      
+    </div>
+    
+  </div>
+  
+  <!-- ВСПЛЫВАЮЩЕЕ ОКНО ЗАКЛЮЧЕНИЯ (REPORT CARD MODAL) -->
+  <div id="report-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="modal-content glass-card" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); width: 550px; max-width: 90%; box-shadow: var(--shadow-lg); overflow: hidden; display: flex; flex-direction: column;">
+      <div class="modal-header" style="padding: 18px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="color: var(--accent-color); font-size: 24px;">workspace_premium</span>
+          <h2 style="font-size: 18px; font-weight: 800; color: var(--text-main); margin: 0;">Итоговое заключение о стратегии</h2>
+        </div>
+        <button id="btn-close-report" class="theme-btn" style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+        <div class="sidebar-section" style="background: rgba(255,255,255,0.01); border-color: var(--border-color); padding: 15px; margin: 0;">
+          <div style="font-size: 12px; font-weight: bold; color: var(--text-main); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">📑 Аналитический вердикт:</div>
+          <p id="report-verdict-text" style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; font-style: italic; margin: 0;">
+            Движок формирует торговые рекомендации...
+          </p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div style="font-size: 12px; display: flex; flex-direction: column; gap: 6px;">
+            <span style="color: var(--text-secondary);">Оценка Шарпа:</span>
+            <strong id="report-sharpe-score" style="font-size: 14px; color: var(--text-main);">--</strong>
+            <span style="color: var(--text-secondary);">Оценка просадки:</span>
+            <strong id="report-drawdown-score" style="font-size: 14px; color: var(--text-main);">--</strong>
+          </div>
+          <div style="font-size: 12px; display: flex; flex-direction: column; gap: 6px;">
+            <span style="color: var(--text-secondary);">Фактор прибыли:</span>
+            <strong id="report-pf-score" style="font-size: 14px; color: var(--text-main);">--</strong>
+            <span style="color: var(--text-secondary);">Итоговый скоринг:</span>
+            <strong id="report-final-score" style="font-size: 14px; color: var(--accent-color);">--</strong>
+          </div>
+        </div>
+        
+        <button id="btn-export-pdf" class="btn-primary" style="margin-top: 10px; width: 100%;">
+          <span class="material-symbols-outlined">picture_as_pdf</span>
+          Экспортировать PDF / Печать отчета
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- КОНТЕЙНЕР ДЛЯ СЛЫВУЩИХ УВЕДОМЛЕНИЙ (TOASTS) -->
+  <div id="toast-notification" class="toast">
+    <span class="material-symbols-outlined" id="toast-icon" style="font-size: 20px;">info</span>
+    <span id="toast-message">Детали уведомления...</span>
+  </div>
+
+  <!-- JavaScript Скрипты -->
+  <script src="engine.js?v=5.0.0"></script>
+  <script src="strategies.js?v=5.0.0"></script>
+  <script src="db-provider.js?v=6.0.0"></script>
+  <script src="data-provider.js?v=5.0.0"></script>
+  <script src="app.js?v=5.0.0"></script>
+</body>
+</html>
