@@ -785,7 +785,24 @@ globEngine.BacktestEngine = (function () {
       const downsideVariance = negativeReturns.reduce((acc, r) => acc + Math.pow(r, 2), 0) / validReturns.length;
       const downsideStdDev = Math.sqrt(downsideVariance);
       
-      const annualizer = Math.sqrt(252); 
+      // Calculate dynamic annualizer based on candle timeframe interval in seconds
+      let barsPerYear = 252;
+      if (candles && candles.length > 1) {
+        const diff = Math.abs(candles[1].time - candles[0].time);
+        if (diff <= 60) barsPerYear = 252 * 1440; // 1 min
+        else if (diff <= 180) barsPerYear = 252 * 480; // 3 min
+        else if (diff <= 300) barsPerYear = 252 * 288; // 5 min
+        else if (diff <= 900) barsPerYear = 252 * 96; // 15 min
+        else if (diff <= 1800) barsPerYear = 252 * 48; // 30 min
+        else if (diff <= 3600) barsPerYear = 252 * 24; // 1 hour
+        else if (diff <= 7200) barsPerYear = 252 * 12; // 2 hour
+        else if (diff <= 14400) barsPerYear = 252 * 6; // 4 hour
+        else if (diff <= 86400) barsPerYear = 252; // 1 day
+        else if (diff <= 604800) barsPerYear = 52; // 1 week
+        else barsPerYear = 12; // 1 month
+      }
+      
+      const annualizer = Math.sqrt(barsPerYear); 
       
       if (stdDev > 0) sharpeRatio = (avgReturn / stdDev) * annualizer;
       if (downsideStdDev > 0) sortinoRatio = (avgReturn / downsideStdDev) * annualizer;

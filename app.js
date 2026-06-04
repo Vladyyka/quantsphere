@@ -2936,7 +2936,7 @@ return 'HOLD';`;
     if (res.maxDrawdown > 15) {
       advice += `Критический уровень максимальной просадки (${res.maxDrawdown.toFixed(1)}%) подвергает ваш баланс опасности ликвидации. Рекомендуется снизить кредитное плечо до 2x-3x или включить ATR-расчет объемов. `;
     }
-    document.getElementById('report-advice').textContent = advice;
+    document.getElementById('report-verdict-text').textContent = advice;
   }
 
   let activeTool = 'cursor';

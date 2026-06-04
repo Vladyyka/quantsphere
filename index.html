@@ -291,6 +291,19 @@
           </div>
         </div>
         
+        <!-- БЛОК 4: УПРАВЛЕНИЕ ГРАФИЧЕСКИМИ ФИГУРАМИ -->
+        <div class="sidebar-section">
+          <div class="section-title">
+            <span>Графические фигуры</span>
+            <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent-color);">palette</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+            Список нанесенных уровней и стрелок на текущем графике:
+          </div>
+          <div id="drawings-manager-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 150px; overflow-y: auto;">
+            <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 10px 0;">Фигур нет</div>
+          </div>
+        </div>
         
         <!-- КНОПКА ЗАПУСКА -->
         <button id="btn-run-backtest" class="btn-primary">
@@ -1085,10 +1098,10 @@ return 'HOLD';
   </div>
 
   <!-- JavaScript Скрипты -->
-  <script src="engine.js?v=5.0.0"></script>
-  <script src="strategies.js?v=5.0.0"></script>
-  <script src="db-provider.js?v=6.0.0"></script>
-  <script src="data-provider.js?v=5.0.0"></script>
-  <script src="app.js?v=5.0.0"></script>
+  <script src="engine.js?v=6.1.0"></script>
+  <script src="strategies.js?v=6.1.0"></script>
+  <script src="db-provider.js?v=6.1.0"></script>
+  <script src="data-provider.js?v=6.1.0"></script>
+  <script src="app.js?v=6.1.0"></script>
 </body>
 </html>

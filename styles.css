@@ -58,7 +58,6 @@
   --text-main: #0f172a; /* Deep charcoal slate */
   --text-secondary: #475569; /* Refined dark slate secondary */
   --text-muted: #94a3b8; /* Soft grey slate */
-}  
   --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
   --shadow-md: 0 8px 12px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
   --shadow-lg: 0 16px 24px -5px rgba(0, 0, 0, 0.08), 0 8px 12px -5px rgba(0, 0, 0, 0.02);

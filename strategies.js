@@ -283,6 +283,9 @@ globStrategies.StrategyRegistry = (function () {
       { regex: /\bopener\b/i, name: 'opener' },
       { regex: /\blocation\b/i, name: 'location' },
       { regex: /\bhistory\b/i, name: 'history' },
+      { regex: /\bself\b/i, name: 'self' },
+      { regex: /\bglobalThis\b/i, name: 'globalThis' },
+      { regex: /\bconstructor\b/i, name: 'constructor' },
       // Защита от бесконечных циклов зависания вкладки (DoS)
       { regex: /\bwhile\s*\(\s*(true|1)\s*\)/i, name: 'while(true) бесконечный цикл' },
       { regex: /\bfor\s*\(\s*;\s*;\s*\)/i, name: 'for(;;) бесконечный цикл' },
@@ -325,6 +328,7 @@ globStrategies.StrategyRegistry = (function () {
       }
       
       const userBody = `
+        'use strict';
         try {
           const i = index;
           const c = candles[i];
