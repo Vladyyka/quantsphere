@@ -2710,8 +2710,8 @@ return 'HOLD';`;
         heatmapGrid.style.display = 'grid';
         heatmapTitle.style.display = 'block';
 
-        // Задаем колонки: первый столбец фиксированный (35px) для меток оси Y, остальные 1fr
-        heatmapGrid.style.gridTemplateColumns = `35px repeat(${uniqueP1.length}, 1fr)`;
+        // Задаем колонки: первый столбец фиксированный (35px) для меток оси Y, остальные minmax(0, 1fr)
+        heatmapGrid.style.gridTemplateColumns = `35px repeat(${uniqueP1.length}, minmax(0, 1fr))`;
 
         // 1. Заголовки колонок (ось X)
         const cornerCell = document.createElement('div');
@@ -2782,7 +2782,7 @@ return 'HOLD';`;
 
               cell.style.backgroundColor = bgStyle;
               const textVal = targetMetric === 'totalReturn' 
-                ? `${val >= 0 ? '+' : ''}${val.toFixed(2)}%` 
+                ? `${val >= 0 ? '+' : ''}${val.toFixed(1)}%` 
                 : targetMetric === 'sharpeRatio' 
                 ? val.toFixed(2) 
                 : `${val.toFixed(1)}%`;
