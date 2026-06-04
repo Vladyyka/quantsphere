@@ -22,6 +22,7 @@ self.onmessage = function (e) {
         
         // Clone strategy
         strategy = { ...rawStrategy };
+        strategy.activeParams = riskParams;
         
         // Dynamic overrides for pre-defined templates
         const overridenIndicators = [];
@@ -78,6 +79,7 @@ self.onmessage = function (e) {
         }
 
         const tempStrategy = { ...activeStrategy };
+        tempStrategy.activeParams = combo;
         const overridenIndicators = [];
 
         if (strategyId === 'ema_crossover') {

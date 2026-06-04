@@ -1464,7 +1464,8 @@
         trailingSL: document.getElementById('param-trailing-sl').checked,
         positionSizing: document.getElementById('param-position-sizing').value,
         riskPercent: parseFloat(document.getElementById('param-risk-percent').value) || 2,
-        pyramiding: document.getElementById('param-pyramiding').checked
+        pyramiding: document.getElementById('param-pyramiding').checked,
+        ...(strategy ? strategy.activeParams : {})
       };
 
       // Check Portfolio Mode
@@ -1481,7 +1482,7 @@
 
       const userCode = strategyId === 'custom' ? document.getElementById('custom-strategy-code').value : '';
       const results = await new Promise((resolve, reject) => {
-        const worker = new Worker('backtest-worker.js');
+        const worker = new Worker('backtest-worker.js?v=6.2.2');
         worker.postMessage({
           type: 'RUN_BACKTEST',
           data: {
@@ -2547,7 +2548,7 @@ return 'HOLD';`;
       };
 
       const results = await new Promise((resolve, reject) => {
-        const worker = new Worker('backtest-worker.js');
+        const worker = new Worker('backtest-worker.js?v=6.2.2');
         worker.postMessage({
           type: 'RUN_OPTIMIZATION',
           data: {
@@ -3279,6 +3280,7 @@ return 'HOLD';`;
       fast: parseInt(document.getElementById('strategy-param-fastPeriod')?.value) || 12,
       slow: parseInt(document.getElementById('strategy-param-slowPeriod')?.value) || 26,
       signal: parseInt(document.getElementById('strategy-param-signalPeriod')?.value) || 9,
+      signalPeriod: parseInt(document.getElementById('strategy-param-signalPeriod')?.value) || 9,
       fractalPeriod: parseInt(document.getElementById('strategy-param-fractalPeriod')?.value) || 2,
       entryMode: parseInt(document.getElementById('strategy-param-entryMode')?.value) || 2
     };
