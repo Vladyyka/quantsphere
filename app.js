@@ -13,6 +13,7 @@
   let currentFetchId = 0;
   let uploadedCSVCandles = null; 
   let lastBacktestResult = null; 
+  let lastOptimizationResults = null;
   let isBacktestRunning = false; // Mutex guard for parallel calculation avoidance
   
   // Переменные Live-режима
@@ -646,6 +647,17 @@
       runGridOptimization();
     });
 
+    // 3.5. Grid Optimizer target metric switch listener
+    const optMetricSelect = document.getElementById('opt-metric');
+    if (optMetricSelect) {
+      optMetricSelect.addEventListener('change', () => {
+        if (lastOptimizationResults) {
+          const strategyId = document.getElementById('strategy-select').value;
+          renderOptimizationResults(lastOptimizationResults, optMetricSelect.value, strategyId);
+        }
+      });
+    }
+
     // 4. Visual Strategy Builder mode toggle
     const btnCode = document.getElementById('btn-mode-code');
     const btnNoCode = document.getElementById('btn-mode-nocode');
@@ -1220,6 +1232,20 @@
     equitySeries.setData([]);
     resetMetricsToEmpty();
     resetTradesTableToEmpty();
+
+    // Сброс состояния оптимизатора
+    lastOptimizationResults = null;
+    const optContainer = document.getElementById('opt-results-container');
+    if (optContainer) optContainer.style.display = 'none';
+    const optList = document.getElementById('opt-results-list');
+    if (optList) optList.innerHTML = '';
+    const heatmapTitle = document.getElementById('opt-heatmap-title');
+    if (heatmapTitle) heatmapTitle.style.display = 'none';
+    const heatmapGrid = document.getElementById('opt-heatmap-grid');
+    if (heatmapGrid) {
+      heatmapGrid.style.display = 'none';
+      heatmapGrid.innerHTML = '';
+    }
   }
 
   async function loadFreshPriceChart() {
@@ -2430,12 +2456,23 @@ return 'HOLD';`;
 
   // 3. Grid Search Parameter Optimizer
   async function runGridOptimization() {
+    if (isBacktestRunning) {
+      showToast("Пожалуйста, подождите завершения текущих расчетов.", "warning");
+      return;
+    }
+
     const strategyId = document.getElementById('strategy-select').value;
     if (strategyId === 'custom') {
       showToast("Оптимизатор не поддерживает кастомный JS-код.", "error");
       return;
     }
 
+    if (!activeCandles || activeCandles.length < 50) {
+      showToast("Сначала загрузите график или исторические данные! Необходимо минимум 50 свечей.", "error");
+      return;
+    }
+
+    isBacktestRunning = true;
     const btnOpt = document.getElementById('btn-run-optimization');
     btnOpt.disabled = true;
     btnOpt.innerHTML = `<span class="spinner"></span> Оптимизация...`;
@@ -2483,7 +2520,7 @@ return 'HOLD';`;
           });
         });
       } else if (strategyId === 'smc_ict') {
-        const periods = [2, 3, 4, 5];
+        const periods = [2, 3, 4, 5, 6, 7, 8];
         periods.forEach(p => {
           combos.push({ fractalPeriod: p });
         });
@@ -2517,7 +2554,8 @@ return 'HOLD';`;
             candles: activeCandles,
             strategyId,
             targetMetric,
-            baseRisk
+            baseRisk,
+            combos
           }
         });
         worker.onmessage = function (e) {
@@ -2538,227 +2576,244 @@ return 'HOLD';`;
         };
       });
 
-      const optContainer = document.getElementById('opt-results-container');
-      const optList = document.getElementById('opt-results-list');
-      optList.innerHTML = '';
-      optContainer.style.display = 'flex';
-
-      const top5 = results.slice(0, 5);
-      top5.forEach((item, idx) => {
-        const row = document.createElement('div');
-        row.className = 'opt-row';
-        
-        let paramStr = Object.keys(item.combo).map(k => `${k}: ${item.combo[k]}`).join(', ');
-        let metricVal = targetMetric === 'totalReturn' 
-          ? `${item.runRes.totalReturn.toFixed(2)}% PnL`
-          : targetMetric === 'sharpeRatio'
-          ? `Шарп: ${item.runRes.sharpeRatio.toFixed(2)}`
-          : `Винрейт: ${item.runRes.winRate.toFixed(1)}%`;
-
-        row.innerHTML = `
-          <div style="display: flex; flex-direction: column; gap: 2px;">
-            <strong style="color: var(--text-main); font-size: 12px;">#${idx+1} [ ${metricVal} ]</strong>
-            <span style="color: var(--text-secondary); font-size: 11px;">${paramStr}</span>
-          </div>
-          <span class="material-symbols-outlined" style="color: var(--accent-color); font-size: 18px;">arrow_forward</span>
-        `;
-
-        row.addEventListener('click', () => {
-          Object.keys(item.combo).forEach(k => {
-            const input = document.getElementById(`strategy-param-${k}`);
-            if (input) input.value = item.combo[k];
-          });
-          showToast(`Параметры #${idx+1} успешно применены!`, "success");
-          runBacktestPipeline();
-        });
-
-        optList.appendChild(row);
-      });
-
-      // РЕНДЕРИНГ HEATMAP
-      const heatmapTitle = document.getElementById('opt-heatmap-title');
-      const heatmapGrid = document.getElementById('opt-heatmap-grid');
-      
-      if (heatmapTitle && heatmapGrid) {
-        let p1Name, p2Name;
-        let p1Label, p2Label;
-
-        if (strategyId === 'ema_crossover') {
-          p1Name = 'fastPeriod';
-          p2Name = 'slowPeriod';
-          p1Label = 'Fast EMA';
-          p2Label = 'Slow EMA';
-        } else if (strategyId === 'bb_reversion') {
-          p1Name = 'bbPeriod';
-          p2Name = 'stdDev';
-          p1Label = 'BB Period';
-          p2Label = 'Std Dev';
-        } else if (strategyId === 'macd_crossover') {
-          p1Name = 'fastPeriod';
-          p2Name = 'slowPeriod';
-          p1Label = 'Fast MACD';
-          p2Label = 'Slow MACD';
-        } else if (strategyId === 'rsi_reversion') {
-          p1Name = 'oversold';
-          p2Name = 'overbought';
-          p1Label = 'Oversold';
-          p2Label = 'Overbought';
-        } else if (strategyId === 'smc_ict') {
-          p1Name = 'fractalPeriod';
-          p2Name = null;
-          p1Label = 'Fractal Period';
-          p2Label = null;
-        }
-
-        if (p1Name) {
-          const uniqueP1 = Array.from(new Set(results.map(r => r.combo[p1Name]))).sort((a, b) => a - b);
-          const uniqueP2 = p2Name ? Array.from(new Set(results.map(r => r.combo[p2Name]))).sort((a, b) => a - b) : [null];
-
-          const gridData = [];
-          let minVal = Infinity;
-          let maxVal = -Infinity;
-
-          uniqueP2.forEach(yVal => {
-            uniqueP1.forEach(xVal => {
-              const matches = results.filter(r => {
-                const m1 = r.combo[p1Name] === xVal;
-                const m2 = p2Name ? r.combo[p2Name] === yVal : true;
-                return m1 && m2;
-              });
-
-              if (matches.length > 0) {
-                // Выбираем лучший результат для этой ячейки
-                matches.sort((a, b) => b.runRes[targetMetric] - a.runRes[targetMetric]);
-                const bestMatch = matches[0];
-                const val = bestMatch.runRes[targetMetric];
-                if (val < minVal) minVal = val;
-                if (val > maxVal) maxVal = val;
-
-                gridData.push({
-                  xVal,
-                  yVal,
-                  bestMatch,
-                  val
-                });
-              }
-            });
-          });
-
-          // Очищаем сетку тепловой карты
-          heatmapGrid.innerHTML = '';
-          heatmapGrid.style.display = 'grid';
-          heatmapTitle.style.display = 'block';
-
-          // Задаем колонки: первый столбец фиксированный (35px) для меток оси Y, остальные 1fr
-          heatmapGrid.style.gridTemplateColumns = `35px repeat(${uniqueP1.length}, 1fr)`;
-
-          // 1. Заголовки колонок (ось X)
-          const cornerCell = document.createElement('div');
-          cornerCell.className = 'heatmap-label';
-          cornerCell.innerHTML = p2Label ? `<span style="font-size: 8px; opacity: 0.6;">Y\\X</span>` : '';
-          heatmapGrid.appendChild(cornerCell);
-
-          uniqueP1.forEach(xVal => {
-            const headerCell = document.createElement('div');
-            headerCell.className = 'heatmap-label';
-            headerCell.textContent = xVal;
-            heatmapGrid.appendChild(headerCell);
-          });
-
-          // 2. Строки данных
-          uniqueP2.forEach(yVal => {
-            // Метка строки (ось Y)
-            const rowHeaderCell = document.createElement('div');
-            rowHeaderCell.className = 'heatmap-label';
-            rowHeaderCell.textContent = yVal !== null ? yVal : '';
-            heatmapGrid.appendChild(rowHeaderCell);
-
-            uniqueP1.forEach(xVal => {
-              const item = gridData.find(d => d.xVal === xVal && d.yVal === yVal);
-              const cell = document.createElement('div');
-
-              if (item) {
-                cell.className = 'heatmap-cell';
-                const val = item.val;
-                
-                let metricText = '';
-                if (targetMetric === 'totalReturn') {
-                  metricText = `${val.toFixed(2)}% PnL`;
-                } else if (targetMetric === 'sharpeRatio') {
-                  metricText = `Шарп: ${val.toFixed(2)}`;
-                } else {
-                  metricText = `Винрейт: ${val.toFixed(1)}%`;
-                }
-
-                cell.title = `${p1Label}: ${xVal}${p2Label ? ', ' + p2Label + ': ' + yVal : ''}\nРезультат: ${metricText}\n\nНажмите, чтобы применить эти параметры!`;
-
-                // Рассчитываем цвет ячейки
-                let bgStyle = '';
-                if (targetMetric === 'totalReturn') {
-                  if (val > 0) {
-                    const factor = maxVal > 0 ? val / maxVal : 0.5;
-                    const alpha = 0.2 + 0.7 * factor;
-                    bgStyle = `rgba(16, 185, 129, ${alpha})`;
-                  } else if (val < 0) {
-                    const factor = minVal < 0 ? val / minVal : 0.5;
-                    const alpha = 0.2 + 0.7 * factor;
-                    bgStyle = `rgba(239, 68, 68, ${alpha})`;
-                  } else {
-                    bgStyle = 'rgba(255, 255, 255, 0.08)';
-                  }
-                } else {
-                  const avg = gridData.reduce((sum, d) => sum + d.val, 0) / gridData.length;
-                  if (val >= avg) {
-                    const factor = (maxVal - avg) > 0 ? (val - avg) / (maxVal - avg) : 0.5;
-                    const alpha = 0.2 + 0.7 * factor;
-                    bgStyle = `rgba(16, 185, 129, ${alpha})`;
-                  } else {
-                    const factor = (avg - minVal) > 0 ? (avg - val) / (avg - minVal) : 0.5;
-                    const alpha = 0.2 + 0.7 * factor;
-                    bgStyle = `rgba(239, 68, 68, ${alpha})`;
-                  }
-                }
-
-                cell.style.backgroundColor = bgStyle;
-                const textVal = targetMetric === 'totalReturn' ? `${val >= 0 ? '+' : ''}${val.toFixed(0)}%` : val.toFixed(1);
-                cell.textContent = textVal;
-
-                // Клик по ячейке
-                cell.addEventListener('click', () => {
-                  Object.keys(item.bestMatch.combo).forEach(key => {
-                    const input = document.getElementById(`strategy-param-${key}`);
-                    if (input) input.value = item.bestMatch.combo[key];
-                  });
-                  showToast(`Параметры успешно применены!`, "success");
-                  runBacktestPipeline();
-                });
-              } else {
-                cell.className = 'heatmap-cell';
-                cell.style.background = 'rgba(255, 255, 255, 0.02)';
-                cell.style.cursor = 'not-allowed';
-                cell.textContent = '-';
-              }
-
-              heatmapGrid.appendChild(cell);
-            });
-          });
-
-          // Подпись осей и легенда
-          const axesInfo = document.createElement('div');
-          axesInfo.className = 'heatmap-axis-label';
-          axesInfo.innerHTML = `Ось X: <strong>${p1Label}</strong>${p2Label ? ` | Ось Y: <strong>${p2Label}</strong>` : ''}<br><span style="font-size: 8.5px; opacity: 0.7;">🟢 Ярче зеленый = лучше | 🔴 Ярче красный = хуже</span>`;
-          heatmapGrid.appendChild(axesInfo);
-        }
-      }
-
+      lastOptimizationResults = results;
+      renderOptimizationResults(results, targetMetric, strategyId);
       showToast(`Оптимизация завершена! Найдено ${results.length} комбинаций.`, "success");
 
     } catch(err) {
       console.error(err);
       showToast(err.message, 'error');
     } finally {
+      isBacktestRunning = false;
       btnOpt.disabled = false;
       btnOpt.innerHTML = `<span class="material-symbols-outlined">bolt</span> Запустить оптимизацию`;
+    }
+  }
+
+  // Рендеринг и сортировка результатов оптимизации
+  function renderOptimizationResults(results, targetMetric, strategyId) {
+    if (!results || results.length === 0) return;
+
+    // Сортируем копию результатов по выбранной метрике
+    results.sort((a, b) => b.runRes[targetMetric] - a.runRes[targetMetric]);
+
+    const optContainer = document.getElementById('opt-results-container');
+    const optList = document.getElementById('opt-results-list');
+    if (!optContainer || !optList) return;
+
+    optList.innerHTML = '';
+    optContainer.style.display = 'flex';
+
+    const top5 = results.slice(0, 5);
+    top5.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'opt-row';
+      
+      let paramStr = Object.keys(item.combo).map(k => `${k}: ${item.combo[k]}`).join(', ');
+      let metricVal = targetMetric === 'totalReturn' 
+        ? `${item.runRes.totalReturn.toFixed(2)}% PnL`
+        : targetMetric === 'sharpeRatio'
+        ? `Шарп: ${item.runRes.sharpeRatio.toFixed(2)}`
+        : `Винрейт: ${item.runRes.winRate.toFixed(1)}%`;
+
+      row.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <strong style="color: var(--text-main); font-size: 12px;">#${idx+1} [ ${metricVal} ]</strong>
+          <span style="color: var(--text-secondary); font-size: 11px;">${paramStr}</span>
+        </div>
+        <span class="material-symbols-outlined" style="color: var(--accent-color); font-size: 18px;">arrow_forward</span>
+      `;
+
+      row.addEventListener('click', () => {
+        Object.keys(item.combo).forEach(k => {
+          const input = document.getElementById(`strategy-param-${k}`);
+          if (input) input.value = item.combo[k];
+        });
+        showToast(`Параметры #${idx+1} успешно применены!`, "success");
+        runBacktestPipeline();
+      });
+
+      optList.appendChild(row);
+    });
+
+    // РЕНДЕРИНГ HEATMAP
+    const heatmapTitle = document.getElementById('opt-heatmap-title');
+    const heatmapGrid = document.getElementById('opt-heatmap-grid');
+    
+    if (heatmapTitle && heatmapGrid) {
+      let p1Name, p2Name;
+      let p1Label, p2Label;
+
+      if (strategyId === 'ema_crossover') {
+        p1Name = 'fastPeriod';
+        p2Name = 'slowPeriod';
+        p1Label = 'Fast EMA';
+        p2Label = 'Slow EMA';
+      } else if (strategyId === 'bb_reversion') {
+        p1Name = 'bbPeriod';
+        p2Name = 'stdDev';
+        p1Label = 'BB Period';
+        p2Label = 'Std Dev';
+      } else if (strategyId === 'macd_crossover') {
+        p1Name = 'fastPeriod';
+        p2Name = 'slowPeriod';
+        p1Label = 'Fast MACD';
+        p2Label = 'Slow MACD';
+      } else if (strategyId === 'rsi_reversion') {
+        p1Name = 'oversold';
+        p2Name = 'overbought';
+        p1Label = 'Oversold';
+        p2Label = 'Overbought';
+      } else if (strategyId === 'smc_ict') {
+        p1Name = 'fractalPeriod';
+        p2Name = null;
+        p1Label = 'Fractal Period';
+        p2Label = null;
+      }
+
+      if (p1Name) {
+        const uniqueP1 = Array.from(new Set(results.map(r => r.combo[p1Name]))).sort((a, b) => a - b);
+        const uniqueP2 = p2Name ? Array.from(new Set(results.map(r => r.combo[p2Name]))).sort((a, b) => a - b) : [null];
+
+        const gridData = [];
+        let minVal = Infinity;
+        let maxVal = -Infinity;
+
+        uniqueP2.forEach(yVal => {
+          uniqueP1.forEach(xVal => {
+            const matches = results.filter(r => {
+              const m1 = r.combo[p1Name] === xVal;
+              const m2 = p2Name ? r.combo[p2Name] === yVal : true;
+              return m1 && m2;
+            });
+
+            if (matches.length > 0) {
+              // Выбираем лучший результат для этой ячейки
+              matches.sort((a, b) => b.runRes[targetMetric] - a.runRes[targetMetric]);
+              const bestMatch = matches[0];
+              const val = bestMatch.runRes[targetMetric];
+              if (val < minVal) minVal = val;
+              if (val > maxVal) maxVal = val;
+
+              gridData.push({
+                xVal,
+                yVal,
+                bestMatch,
+                val
+              });
+            }
+          });
+        });
+
+        // Очищаем сетку тепловой карты
+        heatmapGrid.innerHTML = '';
+        heatmapGrid.style.display = 'grid';
+        heatmapTitle.style.display = 'block';
+
+        // Задаем колонки: первый столбец фиксированный (35px) для меток оси Y, остальные 1fr
+        heatmapGrid.style.gridTemplateColumns = `35px repeat(${uniqueP1.length}, 1fr)`;
+
+        // 1. Заголовки колонок (ось X)
+        const cornerCell = document.createElement('div');
+        cornerCell.className = 'heatmap-label';
+        cornerCell.innerHTML = p2Label ? `<span style="font-size: 8px; opacity: 0.6;">Y\\X</span>` : '';
+        heatmapGrid.appendChild(cornerCell);
+
+        uniqueP1.forEach(xVal => {
+          const headerCell = document.createElement('div');
+          headerCell.className = 'heatmap-label';
+          headerCell.textContent = xVal;
+          heatmapGrid.appendChild(headerCell);
+        });
+
+        // 2. Строки данных
+        uniqueP2.forEach(yVal => {
+          // Метка строки (ось Y)
+          const rowHeaderCell = document.createElement('div');
+          rowHeaderCell.className = 'heatmap-label';
+          rowHeaderCell.textContent = yVal !== null ? yVal : '';
+          heatmapGrid.appendChild(rowHeaderCell);
+
+          uniqueP1.forEach(xVal => {
+            const item = gridData.find(d => d.xVal === xVal && d.yVal === yVal);
+            const cell = document.createElement('div');
+
+            if (item) {
+              cell.className = 'heatmap-cell';
+              const val = item.val;
+              
+              let metricText = '';
+              if (targetMetric === 'totalReturn') {
+                metricText = `${val.toFixed(2)}% PnL`;
+              } else if (targetMetric === 'sharpeRatio') {
+                metricText = `Шарп: ${val.toFixed(2)}`;
+              } else {
+                metricText = `Винрейт: ${val.toFixed(1)}%`;
+              }
+
+              cell.title = `${p1Label}: ${xVal}${p2Label ? ', ' + p2Label + ': ' + yVal : ''}\nРезультат: ${metricText}\n\nНажмите, чтобы применить эти параметры!`;
+
+              // Рассчитываем цвет ячейки
+              let bgStyle = '';
+              if (targetMetric === 'totalReturn') {
+                if (val > 0) {
+                  const factor = maxVal > 0 ? val / maxVal : 0.5;
+                  const alpha = 0.2 + 0.7 * factor;
+                  bgStyle = `rgba(16, 185, 129, ${alpha})`;
+                } else if (val < 0) {
+                  const factor = minVal < 0 ? val / minVal : 0.5;
+                  const alpha = 0.2 + 0.7 * factor;
+                  bgStyle = `rgba(239, 68, 68, ${alpha})`;
+                } else {
+                  bgStyle = 'rgba(255, 255, 255, 0.08)';
+                }
+              } else {
+                const avg = gridData.reduce((sum, d) => sum + d.val, 0) / gridData.length;
+                if (val >= avg) {
+                  const factor = (maxVal - avg) > 0 ? (val - avg) / (maxVal - avg) : 0.5;
+                  const alpha = 0.2 + 0.7 * factor;
+                  bgStyle = `rgba(16, 185, 129, ${alpha})`;
+                } else {
+                  const factor = (avg - minVal) > 0 ? (avg - val) / (avg - minVal) : 0.5;
+                  const alpha = 0.2 + 0.7 * factor;
+                  bgStyle = `rgba(239, 68, 68, ${alpha})`;
+                }
+              }
+
+              cell.style.backgroundColor = bgStyle;
+              const textVal = targetMetric === 'totalReturn' 
+                ? `${val >= 0 ? '+' : ''}${val.toFixed(2)}%` 
+                : targetMetric === 'sharpeRatio' 
+                ? val.toFixed(2) 
+                : `${val.toFixed(1)}%`;
+              cell.textContent = textVal;
+
+              // Клик по ячейке
+              cell.addEventListener('click', () => {
+                Object.keys(item.bestMatch.combo).forEach(key => {
+                  const input = document.getElementById(`strategy-param-${key}`);
+                  if (input) input.value = item.bestMatch.combo[key];
+                });
+                showToast(`Параметры успешно применены!`, "success");
+                runBacktestPipeline();
+              });
+            } else {
+              cell.className = 'heatmap-cell';
+              cell.style.background = 'rgba(255, 255, 255, 0.02)';
+              cell.style.cursor = 'not-allowed';
+              cell.textContent = '-';
+            }
+
+            heatmapGrid.appendChild(cell);
+          });
+        });
+
+        // Подпись осей и легенда
+        const axesInfo = document.createElement('div');
+        axesInfo.className = 'heatmap-axis-label';
+        axesInfo.innerHTML = `Ось X: <strong>${p1Label}</strong>${p2Label ? ` | Ось Y: <strong>${p2Label}</strong>` : ''}<br><span style="font-size: 8.5px; opacity: 0.7;">🟢 Ярче зеленый = лучше | 🔴 Ярче красный = хуже</span>`;
+        heatmapGrid.appendChild(axesInfo);
+      }
     }
   }
 

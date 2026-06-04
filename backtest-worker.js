@@ -57,54 +57,11 @@ self.onmessage = function (e) {
     }
     
     else if (type === 'RUN_OPTIMIZATION') {
-      const { candles, strategyId, targetMetric, baseRisk } = data;
+      const { candles, strategyId, targetMetric, baseRisk, combos } = data;
       const activeStrategy = self.StrategyRegistry.get(strategyId);
       if (!activeStrategy) throw new Error("Стратегия не найдена: " + strategyId);
 
-      const combos = [];
-      if (strategyId === 'ema_crossover') {
-        const fasts = [5, 7, 9, 11, 13];
-        const slows = [15, 21, 25, 30, 35];
-        fasts.forEach(f => {
-          slows.forEach(s => {
-            if (f < s) combos.push({ fastPeriod: f, slowPeriod: s });
-          });
-        });
-      } else if (strategyId === 'rsi_reversion') {
-        const periods = [10, 12, 14, 16];
-        const oversolds = [20, 25, 30, 35];
-        const overboughts = [65, 70, 75, 80];
-        periods.forEach(p => {
-          oversolds.forEach(os => {
-            overboughts.forEach(ob => {
-              combos.push({ rsiPeriod: p, oversold: os, overbought: ob });
-            });
-          });
-        });
-      } else if (strategyId === 'bb_reversion') {
-        const periods = [14, 18, 20, 24];
-        const stds = [1.5, 1.8, 2.0, 2.2];
-        periods.forEach(p => {
-          stds.forEach(s => {
-            combos.push({ bbPeriod: p, stdDev: s });
-          });
-        });
-      } else if (strategyId === 'macd_crossover') {
-        const fasts = [8, 10, 12, 14];
-        const slows = [20, 24, 26, 30];
-        fasts.forEach(f => {
-          slows.forEach(s => {
-            if (f < s) combos.push({ fastPeriod: f, slowPeriod: s, signalPeriod: 9 });
-          });
-        });
-      } else if (strategyId === 'smc_ict') {
-        const periods = [2, 3, 4, 5];
-        periods.forEach(p => {
-          combos.push({ fractalPeriod: p });
-        });
-      }
-
-      if (combos.length === 0) {
+      if (!combos || combos.length === 0) {
         throw new Error("Нет доступных параметров для оптимизации.");
       }
 
